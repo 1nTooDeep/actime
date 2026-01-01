@@ -60,4 +60,23 @@ type Config struct {
 		OutputDir     string `yaml:"output_dir"`
 		DefaultFormat string `yaml:"default_format"`
 	} `yaml:"export"`
+
+	AppMapping struct {
+		ProcessNames map[string]string `yaml:"process_names"` // Map process name to display name
+		Browsers     []string          `yaml:"browsers"`      // Browser process names
+	} `yaml:"app_mapping"`
 }
+
+// AppCategory represents application category
+type AppCategory string
+
+const (
+	CategoryBrowser     AppCategory = "browser"
+	CategoryCommunication AppCategory = "communication"
+	CategoryDevelopment  AppCategory = "development"
+	CategoryOffice       AppCategory = "office"
+	CategoryMedia        AppCategory = "media"
+	CategorySystem       AppCategory = "system"
+	CategoryGame         AppCategory = "game"
+	CategoryOther        AppCategory = "other"
+)

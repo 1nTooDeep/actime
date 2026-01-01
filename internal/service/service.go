@@ -241,16 +241,36 @@ func (s *Service) flushSessions() error {
 		return nil
 	}
 
+	// Deduplicate sessions: keep only the latest session for each app/window combination
+	sessionMap := make(map[string]*storage.Session)
+	for _, session := range sessions {
+		key := session.AppName + "|" + session.WindowTitle
+		if existing, exists := sessionMap[key]; exists {
+			// Keep the one with later end time
+			if session.EndTime.After(existing.EndTime) {
+				sessionMap[key] = session
+			}
+		} else {
+			sessionMap[key] = session
+		}
+	}
+
+	// Convert map back to slice
+	var deduplicatedSessions []*storage.Session
+	for _, session := range sessionMap {
+		deduplicatedSessions = append(deduplicatedSessions, session)
+	}
+
 	log := logger.GetLogger()
-	log.Info("Flushing sessions to database", "count", len(sessions))
+	log.Info("Flushing sessions to database", "count", len(deduplicatedSessions))
 
 	// Batch insert sessions
-	if err := s.db.BatchInsertSessions(sessions); err != nil {
+	if err := s.db.BatchInsertSessions(deduplicatedSessions); err != nil {
 		return fmt.Errorf("failed to batch insert sessions: %w", err)
 	}
 
 	// Update daily statistics
-	if err := s.db.UpdateDailyStatsBatch(sessions); err != nil {
+	if err := s.db.UpdateDailyStatsBatch(deduplicatedSessions); err != nil {
 		return fmt.Errorf("failed to update daily stats: %w", err)
 	}
 

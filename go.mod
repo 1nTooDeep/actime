@@ -11,6 +11,7 @@ require (
 	github.com/BurntSushi/xgb v0.0.0-20210121224620-deaf085860bc // indirect
 	github.com/BurntSushi/xgbutil v0.0.0-20190907113008-ad855c713046 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
+	github.com/go-echarts/go-echarts/v2 v2.6.7 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/kardianos/service v1.2.2 // indirect
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect

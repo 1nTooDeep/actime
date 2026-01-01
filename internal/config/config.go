@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/weii/actime/internal/core"
@@ -124,9 +125,15 @@ func getDefaultConfig() *core.Config {
 func validateAndSetDefaults(cfg *core.Config) error {
 	homeDir, _ := os.UserHomeDir()
 
-	// Validate database path
+	// Validate and expand database path
 	if cfg.Database.Path == "" {
 		cfg.Database.Path = filepath.Join(homeDir, ".actime", "actime.db")
+	} else {
+		// Expand ~ to home directory if present
+		expandedPath, err := expandPath(cfg.Database.Path)
+		if err == nil {
+			cfg.Database.Path = expandedPath
+		}
 	}
 
 	// Validate monitor settings
@@ -146,6 +153,12 @@ func validateAndSetDefaults(cfg *core.Config) error {
 	}
 	if cfg.Logging.File == "" {
 		cfg.Logging.File = filepath.Join(homeDir, ".actime", "actime.log")
+	} else {
+		// Expand ~ to home directory if present
+		expandedPath, err := expandPath(cfg.Logging.File)
+		if err == nil {
+			cfg.Logging.File = expandedPath
+		}
 	}
 	if cfg.Logging.MaxSizeMB == 0 {
 		cfg.Logging.MaxSizeMB = 100
@@ -160,9 +173,25 @@ func validateAndSetDefaults(cfg *core.Config) error {
 	// Validate export settings
 	if cfg.Export.OutputDir == "" {
 		cfg.Export.OutputDir = filepath.Join(homeDir, ".actime", "exports")
+	} else {
+		// Expand ~ to home directory if present
+		expandedPath, err := expandPath(cfg.Export.OutputDir)
+		if err == nil {
+			cfg.Export.OutputDir = expandedPath
+		}
 	}
 	if cfg.Export.DefaultFormat == "" {
 		cfg.Export.DefaultFormat = "csv"
+	}
+
+	// Normalize process name mapping keys to lowercase for case-insensitive lookup
+	if cfg.AppMapping.ProcessNames != nil {
+		normalizedMap := make(map[string]string)
+		for key, value := range cfg.AppMapping.ProcessNames {
+			normalizedKey := strings.ToLower(key)
+			normalizedMap[normalizedKey] = value
+		}
+		cfg.AppMapping.ProcessNames = normalizedMap
 	}
 
 	return nil

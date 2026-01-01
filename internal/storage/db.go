@@ -45,7 +45,8 @@ func (db *DB) initSchema() error {
 		start_time DATETIME NOT NULL,
 		end_time DATETIME,
 		duration_seconds INTEGER NOT NULL,
-		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+		UNIQUE(app_name, window_title, start_time)
 	);
 
 	CREATE INDEX IF NOT EXISTS idx_sessions_app_name ON sessions(app_name);
@@ -168,7 +169,8 @@ func (db *DB) UpdateDailyStats(appName string, date time.Time, seconds int64) er
 	return nil
 }
 
-// BatchInsertSessions inserts multiple sessions in a single transaction
+// BatchInsertSessions inserts or replaces multiple sessions in a single transaction
+// Uses INSERT OR REPLACE to avoid duplicate sessions for the same app/window/start_time
 func (db *DB) BatchInsertSessions(sessions []*Session) error {
 	if len(sessions) == 0 {
 		return nil
@@ -185,8 +187,10 @@ func (db *DB) BatchInsertSessions(sessions []*Session) error {
 		}
 	}()
 
+	// Use INSERT OR REPLACE to avoid duplicates
+	// The combination of app_name, window_title, and start_time should be unique
 	query := `
-	INSERT INTO sessions (app_name, window_title, start_time, end_time, duration_seconds)
+	INSERT OR REPLACE INTO sessions (app_name, window_title, start_time, end_time, duration_seconds)
 	VALUES (?, ?, ?, ?, ?)
 	`
 
@@ -264,4 +268,39 @@ func (db *DB) UpdateDailyStatsBatch(sessions []*Session) error {
 	}
 
 	return nil
+}
+
+// GetSessions retrieves all sessions within the specified date range
+func (db *DB) GetSessions(startDate, endDate time.Time) ([]*Session, error) {
+	query := `
+	SELECT id, app_name, window_title, start_time, end_time, duration_seconds, created_at
+	FROM sessions
+	WHERE start_time >= ? AND start_time < ?
+	ORDER BY start_time ASC
+	`
+
+	rows, err := db.conn.Query(query, startDate, endDate)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query sessions: %w", err)
+	}
+	defer rows.Close()
+
+	var sessions []*Session
+	for rows.Next() {
+		var session Session
+		if err := rows.Scan(
+			&session.ID,
+			&session.AppName,
+			&session.WindowTitle,
+			&session.StartTime,
+			&session.EndTime,
+			&session.DurationSeconds,
+			&session.CreatedAt,
+		); err != nil {
+			return nil, fmt.Errorf("failed to scan row: %w", err)
+		}
+		sessions = append(sessions, &session)
+	}
+
+	return sessions, nil
 }
