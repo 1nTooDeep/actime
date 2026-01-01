@@ -4,8 +4,8 @@
 *.dll
 *.so
 *.dylib
-actime
-actimed
+/actime
+/actimed
 
 # Test binary, built with `go test -c`
 *.test
