@@ -1,0 +1,212 @@
+﻿database:
+  path: ~/.actime/actime.db
+
+monitor:
+  check_interval: 1s
+  activity_window: 5m
+  idle_timeout: 10m
+
+logging:
+  level: info
+  file: ~/.actime/actime.log
+  max_size_mb: 100
+  max_backups: 3
+  max_age_days: 30
+
+export:
+  output_dir: ~/.actime/exports
+  default_format: csv
+app_mapping:
+  # 进程名称映射：将进程名映射为友好的显示名称
+  #
+  # 跨平台说明：
+  # - Windows: 进程名通常包含 .exe 扩展名（如 chrome.exe）
+  # - Linux: 进程名通常不包含扩展名（如 chrome）
+  # - macOS: 应用通常以 .app 形式存在，但进程名不带扩展名
+  #
+  # 系统会自动处理跨平台的扩展名差异，因此配置中可以：
+  # 1. 只写不带扩展名的名称（适用于所有平台）
+  # 2. 同时写带和不带扩展名的名称（确保兼容性）
+  # 3. 只写特定平台的扩展名（仅适用于该平台）
+  #
+  # 推荐做法：为跨平台应用同时写带和不带扩展名的名称
+  process_names:
+    # Web browsers (跨平台)
+    chrome: Chrome
+    chrome.exe: Chrome
+    msedge: Edge
+    msedge.exe: Edge
+    firefox: Firefox
+    firefox.exe: Firefox
+    brave: Brave
+    brave.exe: Brave
+    opera: Opera
+    opera.exe: Opera
+    vivaldi: Vivaldi
+    vivaldi.exe: Vivaldi
+    opera_stable: Opera           # Ubuntu Snap 版
+    vivaldi-stable: Vivaldi       # Ubuntu Snap 版
+    safari: Safari
+
+    # Communication (Windows & Linux)
+    wechat.exe: 微信
+    wechat: 微信                  # Linux 版（如 Deepin/UOS）
+    qq.exe: QQ
+    com.qq.office: QQ             # Linux Deepin 版进程名
+    dingtalk.exe: 钉钉
+    feishu.exe: 飞书
+    teams.exe: Teams
+    teams: Teams                  # Linux 版 Electron
+    slack.exe: Slack
+    slack: Slack
+    telegram.exe: Telegram
+    telegram-desktop: Telegram    # Ubuntu 官方包
+    zoom.exe: Zoom
+    zoom: Zoom                    # Linux 官方版（无 .exe）
+    zoom-linux: Zoom              # Ubuntu deb 旧版
+
+    # Development tools (跨平台)
+    code: VS Code
+    code.exe: VS Code
+    code-oss: VS Code OSS         # Ubuntu 官方源版本
+    idea64.exe: IntelliJ IDEA
+    pycharm64.exe: PyCharm
+    webstorm64.exe: WebStorm
+    clion64.exe: CLion
+    goland64.exe: GoLand
+    datagrip64.exe: DataGrip
+    androidstudio64.exe: Android Studio
+    gitkraken.exe: GitKraken
+    postman.exe: Postman
+    postman: Postman              # Linux Electron 版
+    insomnia.exe: Insomnia
+    insomnia: Insomnia
+    sublime_text.exe: Sublime Text
+    sublime_text: Sublime Text
+    drawio.exe: Draw.io Desktop
+    drawio: Draw.io Desktop
+    draw.io-desktop: Draw.io Desktop  # Ubuntu Snap 变体
+
+    # DevOps GUI Tools (跨平台，契合 Prometheus/Docker/Grafana 栈)
+    docker desktop.exe: Docker Desktop
+    docker-desktop: Docker Desktop    # Linux 版主进程名（含空格/连字符变体）
+    rancher-desktop.exe: Rancher Desktop
+    rancher-desktop: Rancher Desktop
+    lens.exe: Lens
+    lens: Lens
+    portainer.exe: Portainer Desktop
+    portainer: Portainer Desktop
+
+    # Database GUI (你使用 DMDBMS / Neo4j / PostgreSQL)
+    dbeaver.exe: DBeaver
+    dbeaver: DBeaver
+    datagrip: DataGrip               # 非 64 位旧版
+    tableplus.exe: TablePlus
+    tableplus: TablePlus
+    redisinsight.exe: RedisInsight
+    redisinsight: RedisInsight
+    neo4j-desktop.exe: Neo4j Desktop
+    neo4j-desktop: Neo4j Desktop
+    dmsqlw.exe: 达梦管理工具          # Windows DM SQL 窗口工具
+    # 注：Linux 达梦 GUI 工具较少，通常用 DBeaver/Navicat 代理，故未列 Linux 专有项
+
+    # Office & Productivity (Windows & Linux)
+    winword.exe: Word
+    excel.exe: Excel
+    powerpnt.exe: PowerPoint
+    onenote.exe: OneNote
+    outlook.exe: Outlook
+    wps.exe: WPS Office
+    libreoffice-writer: Writer        # Ubuntu LibreOffice
+    libreoffice-calc: Calc
+    libreoffice-impress: Impress
+    onlyoffice-desktopeditors.exe: ONLYOFFICE
+    onlyoffice-desktopeditors: ONLYOFFICE  # Linux AppImage/Deb
+    notepad.exe: 记事本
+    notepad++.exe: Notepad++
+    gedit: 文本编辑器 (GNOME)         # Ubuntu 默认
+    typora.exe: Typora
+    obsidian.exe: Obsidian
+
+    # Media & Entertainment (跨平台)
+    spotify: Spotify
+    spotify.exe: Spotify
+    vlc: VLC
+    vlc.exe: VLC
+    mpv: MPV 播放器
+    mpv.exe: MPV
+    potplayermini64.exe: PotPlayer
+    qqmusic.exe: QQ音乐
+    cloudmusic.exe: 网易云音乐
+
+    # Quant & Data Analysis GUI (契合 AKShare/n8n/Flask 量化系统)
+    jupyter-lab.exe: JupyterLab Desktop
+    jupyter-lab: JupyterLab Desktop   # Linux
+    jupyter-notebook.exe: Jupyter Notebook Desktop
+    jupyter-notebook: Jupyter Notebook Desktop
+    rstudio.exe: RStudio Desktop
+    rstudio: RStudio Desktop
+    julia.exe: Julia                  # GUI REPL 或 VSCode 插件宿主
+    julia: Julia
+
+    # System & Utilities (Windows)
+    explorer.exe: 文件资源管理器
+    cmd.exe: 命令提示符
+    powershell.exe: PowerShell
+    windowsterminal.exe: Windows Terminal
+    taskmgr.exe: 任务管理器
+    snippingtool.exe: 截图工具
+    mspaint.exe: 画图
+    calc.exe: 计算器
+
+    # System & Utilities (Linux Desktop - GNOME/KDE)
+    nautilus: 文件管理器 (GNOME)      # Ubuntu 默认
+    dolphin: Dolphin (KDE)
+    gnome-terminal: GNOME 终端
+    konsole: KDE 终端
+    gnome-system-monitor: 系统监视器 (GNOME)
+    ksysguard: 系统监视器 (KDE)
+    gnome-calculator: 计算器 (GNOME)
+    org.gnome.Calculator: 计算器 (Flatpak/Snap)
+    gnome-screenshot: 截图 (GNOME)
+    spectacle: 截图 (KDE)
+    flameshot: Flameshot
+    flameshot.exe: Flameshot          # Windows 版
+
+    # Gaming (跨平台)
+    steam: Steam
+    steam.exe: Steam
+    lutris: Lutris                      # Linux 游戏平台
+    heroic: Heroic Games Launcher     # Linux Epic 客户端
+    heroic.exe: Heroic
+    epicgameslauncher.exe: Epic Games
+    origin.exe: Origin
+    uplay.exe: Uplay
+    battlenet.exe: Battle.net
+    leagueclient.exe: 英雄联盟
+    valorant.exe: Valorant
+    MuMuNxMain.exe: MuMu 模拟器
+    MuMuNxMain: MuMu 模拟器
+  # 浏览器列表：用于特殊处理浏览器窗口标题
+  #
+  # 说明：
+  # - 此列表用于识别浏览器应用
+  # - 浏览器窗口标题通常包含当前访问的网页标题
+  # - 系统可以根据此列表对浏览器进行特殊处理
+  # - 可以带或不带扩展名，系统会自动匹配
+  browsers:
+    - chrome
+    - chrome.exe
+    - msedge
+    - msedge.exe
+    - firefox
+    - firefox.exe
+    - brave
+    - brave.exe
+    - opera
+    - opera.exe
+    - opera_stable
+    - vivaldi
+    - vivaldi.exe
+    - vivaldi-stable
+    - safari
