@@ -167,3 +167,101 @@ func (db *DB) UpdateDailyStats(appName string, date time.Time, seconds int64) er
 
 	return nil
 }
+
+// BatchInsertSessions inserts multiple sessions in a single transaction
+func (db *DB) BatchInsertSessions(sessions []*Session) error {
+	if len(sessions) == 0 {
+		return nil
+	}
+
+	tx, err := db.conn.Begin()
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+		}
+	}()
+
+	query := `
+	INSERT INTO sessions (app_name, window_title, start_time, end_time, duration_seconds)
+	VALUES (?, ?, ?, ?, ?)
+	`
+
+	stmt, err := tx.Prepare(query)
+	if err != nil {
+		return fmt.Errorf("failed to prepare statement: %w", err)
+	}
+	defer stmt.Close()
+
+	for _, session := range sessions {
+		_, err = stmt.Exec(
+			session.AppName,
+			session.WindowTitle,
+			session.StartTime,
+			session.EndTime,
+			session.DurationSeconds,
+		)
+		if err != nil {
+			return fmt.Errorf("failed to insert session: %w", err)
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	return nil
+}
+
+// UpdateDailyStatsBatch updates daily statistics for multiple sessions
+func (db *DB) UpdateDailyStatsBatch(sessions []*Session) error {
+	if len(sessions) == 0 {
+		return nil
+	}
+
+	tx, err := db.conn.Begin()
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+		}
+	}()
+
+	query := `
+	INSERT INTO daily_stats (app_name, date, total_seconds)
+	VALUES (?, ?, ?)
+	ON CONFLICT(app_name, date) DO UPDATE SET
+	total_seconds = total_seconds + ?
+	`
+
+	stmt, err := tx.Prepare(query)
+	if err != nil {
+		return fmt.Errorf("failed to prepare statement: %w", err)
+	}
+	defer stmt.Close()
+
+	for _, session := range sessions {
+		date := session.StartTime.Format("2006-01-02")
+		_, err = stmt.Exec(
+			session.AppName,
+			date,
+			session.DurationSeconds,
+			session.DurationSeconds,
+		)
+		if err != nil {
+			return fmt.Errorf("failed to update daily stats: %w", err)
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	return nil
+}

@@ -213,16 +213,21 @@ CREATE INDEX idx_daily_stats_date ON daily_stats(date);
 - [ ] 实现数据库迁移
 
 ### 阶段5: 服务管理
-- [ ] 实现跨平台服务封装
-- [ ] 实现启动/停止逻辑
-- [ ] 实现状态监控
-- [ ] 实现优雅关闭
+- [x] 实现跨平台服务封装
+- [x] 实现启动/停止逻辑
+- [x] 实现状态监控
+- [x] 实现优雅关闭
+- [x] 实现PID文件管理
+- [x] 实现守护进程模式
+- [x] 添加日志查看功能
 
 ### 阶段6: CLI工具
-- [ ] 实现start/stop/status命令
-- [ ] 实现stats查询
-- [ ] 实现export功能
-- [ ] 实现日志查看
+- [x] 实现start/stop/status命令
+- [x] 实现restart命令
+- [x] 实现log命令
+- [x] 实现stats查询
+- [x] 实现export功能
+- [x] 完善错误处理和返回码
 
 ### 阶段7: 测试和优化
 - [ ] 单元测试
@@ -272,3 +277,47 @@ CREATE INDEX idx_daily_stats_date ON daily_stats(date);
 - 使用build tag区分平台
 - CGO依赖（sqlite使用纯Go版本避免CGO）
 - 交叉编译测试
+
+## 服务管理实现
+
+### PID文件管理
+- **位置**: `/tmp/actime.pid`
+- **作用**: 防止重复启动，跟踪服务进程
+- **实现**:
+  - 启动时检查PID文件是否存在
+  - 如果存在，检查进程是否仍在运行
+  - 如果进程已停止，清理过期PID文件
+  - 如果进程仍在运行，拒绝启动并返回错误
+
+### 守护进程模式
+- **实现方式**: 使用 `exec.Command` + `syscall.SysProcAttr{Setsid: true}`
+- **特点**:
+  - 从终端分离，独立运行
+  - 不受父进程退出影响
+  - 真正的后台服务
+
+### 信号处理
+- **SIGTERM**: 优雅关闭
+  - 停止tracker
+  - 刷新所有会话数据
+  - 关闭数据库连接
+  - 删除PID文件
+- **SIGINT**: 同SIGTERM
+
+### 日志管理
+- **日志文件**: `~/.actime/actime.log`
+- **轮转策略**:
+  - 最大文件大小: 100MB
+  - 最大保留天数: 30天
+  - 最大备份数: 10个
+- **查看方式**: 使用 `actimed log` 命令查看最近50条日志
+
+### 错误处理
+- **返回码**:
+  - 成功: 0
+  - 失败: 1
+- **常见错误**:
+  - "service is already running" - 服务已在运行
+  - "service is not running" - 服务未运行
+  - "failed to read PID file" - PID文件读取失败
+  - "failed to send stop signal" - 停止信号发送失败

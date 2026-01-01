@@ -7,7 +7,7 @@ BINARY_NAME=actime
 DAEMON_NAME=actimed
 BUILD_DIR=build
 CMD_DIR=cmd
-GO=go
+GO=/usr/local/go/bin/go
 GOFLAGS=-v
 
 # Version info
