@@ -5,6 +5,7 @@ package platform
 import (
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/BurntSushi/xgb"
@@ -100,6 +101,16 @@ func (d *X11Detector) GetActiveWindow() (*WindowInfo, error) {
 	wmClass, err := xprop.PropValStr(xprop.GetProperty(d.XUtil, activeWin, "WM_CLASS"))
 	if err != nil {
 		wmClass = "Unknown"
+	}
+
+	// Clean up WM_CLASS: it may contain null bytes and multiple parts
+	// WM_CLASS format is typically "instance\0class\0" or "instance class"
+	wmClass = strings.ReplaceAll(wmClass, "\x00", " ")
+	wmClass = strings.TrimSpace(wmClass)
+	parts := strings.Fields(wmClass)
+	if len(parts) > 0 {
+		// Use the first non-empty part
+		wmClass = parts[0]
 	}
 
 	// Get window PID
