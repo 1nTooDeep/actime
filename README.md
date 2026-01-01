@@ -283,15 +283,6 @@ make fmt
 
 [MIT License](LICENSE)
 
-## 联系方式
-
-- 项目主页: https://github.com/weii/actime
-- 问题反馈: https://github.com/weii/actime/issues
-
-## 致谢
-
-感谢所有贡献者的支持！
-
 ## 常见问题
 
 ### Q: Actime 会记录我的输入内容吗？
