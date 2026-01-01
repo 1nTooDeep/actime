@@ -3,13 +3,17 @@ package service
 import (
 	"fmt"
 	"os"
+	"os/exec"
+	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"syscall"
 )
 
-const (
-	PIDFile = "/tmp/actime.pid"
+var (
+	// PIDFile is the path to the PID file
+	PIDFile = filepath.Join(os.TempDir(), "actime.pid")
 )
 
 // WritePIDFile writes the current process ID to the PID file
@@ -43,13 +47,26 @@ func IsProcessRunning(pid int) bool {
 		return false
 	}
 
-	// Send signal 0 to check if process exists
-	err = process.Signal(syscall.Signal(0))
-	if err != nil {
-		return false
+	// On Windows, we can't use Signal(0) reliably
+	// Instead, we check if we can get the process state
+	// If the process doesn't exist, trying to get its state will fail
+	_ = process // Avoid unused variable warning
+
+	// For Windows, we need to use a different approach
+	// We'll use exec.Command to run tasklist and check if the process exists
+	// This is a workaround, but it works reliably on Windows
+	if runtime.GOOS == "windows" {
+		cmd := exec.Command("tasklist", "/FI", fmt.Sprintf("PID eq %d", pid), "/NH")
+		output, err := cmd.CombinedOutput()
+		if err != nil {
+			return false
+		}
+		return strings.Contains(string(output), fmt.Sprintf("%d", pid))
 	}
 
-	return true
+	// On Unix, use Signal(0)
+	err = process.Signal(syscall.Signal(0))
+	return err == nil
 }
 
 // CheckAndLockPIDFile checks if the service is already running and locks the PID file

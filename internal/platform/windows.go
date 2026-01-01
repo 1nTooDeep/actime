@@ -13,19 +13,21 @@ import (
 )
 
 var (
-	user32               = windows.NewLazySystemDLL("user32.dll")
+	user32               = windows.NewLazyDLL("user32.dll")
 	procGetForegroundWindow = user32.NewProc("GetForegroundWindow")
 	procGetWindowTextW      = user32.NewProc("GetWindowTextW")
 	procGetWindowThreadProcessId = user32.NewProc("GetWindowThreadProcessId")
 	procGetLastInputInfo    = user32.NewProc("GetLastInputInfo")
-	procOpenProcess         = user32.NewProc("OpenProcess")
-	procCloseHandle         = user32.NewProc("CloseHandle")
-	procQueryFullProcessImageNameW = user32.NewProc("QueryFullProcessImageNameW")
 	procGetClassNameW       = user32.NewProc("GetClassNameW")
 
-	kernel32           = windows.NewLazySystemDLL("kernel32.dll")
+	kernel32           = windows.NewLazyDLL("kernel32.dll")
+	procOpenProcess         = kernel32.NewProc("OpenProcess")
+	procCloseHandle         = kernel32.NewProc("CloseHandle")
+	procQueryFullProcessImageNameW = kernel32.NewProc("QueryFullProcessImageNameW")
 	procWTSGetSessionConsoleSessionId = kernel32.NewProc("WTSGetActiveConsoleSessionId")
-	procWTSQuerySessionInformationW   = kernel32.NewLazySystemDLL("wtsapi32.dll").NewProc("WTSQuerySessionInformationW")
+
+	wtsapi32           = windows.NewLazyDLL("wtsapi32.dll")
+	procWTSQuerySessionInformationW   = wtsapi32.NewProc("WTSQuerySessionInformationW")
 )
 
 // LASTINPUTINFO contains information about the last input event
@@ -75,7 +77,7 @@ func (d *WindowsDetector) GetActiveWindow() (*WindowInfo, error) {
 	appName := "Unknown"
 	if pid != 0 {
 		// Open process
-		hProcess, _, err := procOpenProcess.Call(
+		hProcess, _, _ := procOpenProcess.Call(
 			windows.PROCESS_QUERY_LIMITED_INFORMATION,
 			0,
 			uintptr(pid),
@@ -134,9 +136,11 @@ func (d *WindowsDetector) GetIdleTime() (time.Duration, error) {
 		return 0, fmt.Errorf("failed to get last input info")
 	}
 
-	// Calculate idle time
-	now := uint32(time.Now().Unix() * 1000) // milliseconds
-	idleTime := time.Duration(now-lii.DwTime) * time.Millisecond
+	// GetTickCount64 returns the number of milliseconds since system startup
+	tickCount, _, _ := kernel32.NewProc("GetTickCount64").Call()
+
+	// Calculate idle time: current tick count - last input tick count
+	idleTime := time.Duration(uint64(tickCount) - uint64(lii.DwTime)) * time.Millisecond
 
 	return idleTime, nil
 }

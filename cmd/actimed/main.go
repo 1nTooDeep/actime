@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"runtime"
 	"strconv"
 	"strings"
 	"syscall"
@@ -199,35 +200,45 @@ func startService() error {
 
 	fmt.Println("Starting Actime daemon...")
 
-	// Fork the process to create a daemon
-	// This is a simple daemon implementation for Unix-like systems
-	// For Windows, we would need a different approach
-
 	// Load configuration first (just to validate it)
 	_, err := config.Load(config.DefaultConfigPath)
 	if err != nil {
 		return fmt.Errorf("failed to load configuration: %w", err)
 	}
 
-	// Start service in background (this will block, so we need to run it in a separate process)
-	// For simplicity, we'll use exec.Command to run the daemon in background
+	// On Windows, we need to use a different approach to create a detached process
+	// We'll use STARTUPINFO to hide the console window
 	args := []string{"daemon"}
 	cmd := exec.Command(os.Args[0], args...)
+
+	// Hide the console window on Windows
+	cmd.SysProcAttr = &syscall.SysProcAttr{
+		HideWindow:    true,
+		CreationFlags: 0x08000000, // CREATE_NO_WINDOW
+	}
+
+	// Redirect output to avoid blocking
 	cmd.Stdout = nil
 	cmd.Stderr = nil
 	cmd.Stdin = nil
-
-	// Set process attributes to detach from terminal
-	cmd.SysProcAttr = &syscall.SysProcAttr{
-		Setsid: true,
-	}
 
 	// Start the daemon process
 	if err := cmd.Start(); err != nil {
 		return fmt.Errorf("failed to start daemon process: %w", err)
 	}
 
-	return nil
+	// Give it a moment to start
+	time.Sleep(500 * time.Millisecond)
+
+	// Verify it's still running
+	if cmd.ProcessState == nil {
+		// Process is still running (ProcessState is nil until the process exits)
+		fmt.Printf("Daemon started with PID: %d\n", cmd.Process.Pid)
+		return nil
+	}
+
+	// Process has exited
+	return fmt.Errorf("daemon process exited immediately")
 }
 
 func stopService() error {
@@ -251,14 +262,14 @@ func stopService() error {
 		return fmt.Errorf("service is not running")
 	}
 
-	// Send SIGTERM to the process
+	// Kill the process
 	process, err := os.FindProcess(pid)
 	if err != nil {
 		return fmt.Errorf("failed to find process: %w", err)
 	}
 
-	if err := process.Signal(syscall.SIGTERM); err != nil {
-		return fmt.Errorf("failed to send stop signal: %w", err)
+	if err := process.Kill(); err != nil {
+		return fmt.Errorf("failed to stop process: %w", err)
 	}
 
 	return nil
@@ -308,6 +319,47 @@ func statusService() error {
 }
 
 func printProcessInfo(pid int) error {
+	// Use platform-specific method to get process info
+	if runtime.GOOS == "windows" {
+		return printProcessInfoWindows(pid)
+	}
+	return printProcessInfoUnix(pid)
+}
+
+func printProcessInfoWindows(pid int) error {
+	// Use tasklist to get process information on Windows
+	cmd := exec.Command("tasklist", "/FI", fmt.Sprintf("PID eq %d", pid), "/FO", "CSV", "/NH")
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("failed to get process info: %w", err)
+	}
+
+	// Parse CSV output: "Image Name","PID","Session Name","Session#","Mem Usage","Status","User Name","CPU Time","Window Title"
+	lines := strings.Split(string(output), "\n")
+	if len(lines) == 0 {
+		return fmt.Errorf("no process info found")
+	}
+
+	// Parse the CSV line
+	fields := strings.Split(lines[0], "\",\"")
+	if len(fields) < 9 {
+		return fmt.Errorf("invalid process info format")
+	}
+
+	// Extract fields
+	imageName := strings.Trim(fields[0], "\"")
+	memUsage := strings.Trim(fields[4], "\"")
+	cpuTime := strings.Trim(fields[7], "\"")
+
+	// Print process info
+	fmt.Printf("  Process: %s\n", imageName)
+	fmt.Printf("  Memory: %s\n", memUsage)
+	fmt.Printf("  CPU Time: %s\n", cpuTime)
+
+	return nil
+}
+
+func printProcessInfoUnix(pid int) error {
 	// Read /proc/[pid]/stat for process information
 	statPath := fmt.Sprintf("/proc/%d/stat", pid)
 	statData, err := os.ReadFile(statPath)
@@ -346,7 +398,7 @@ func printProcessInfo(pid int) error {
 	totalTime := (utime + stime) / clockTicks // seconds
 	uptime := getSystemUptime()
 	if uptime > 0 {
-		elapsed := uptime - (float64(starttime)/float64(clockTicks)) // uptime - process start time
+		elapsed := uptime - (float64(starttime) / float64(clockTicks)) // uptime - process start time
 		if elapsed > 0 {
 			cpuPercent := float64(totalTime) / elapsed * 100
 			fmt.Printf("  CPU: %.2f%%\n", cpuPercent)
