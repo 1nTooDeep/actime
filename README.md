@@ -8,6 +8,7 @@ Actime 是一个跨平台（Windows + Linux）的后台进程，用于准确统�
 - 🚀 **高性能**: 低内存占用（< 20MB），低CPU占用（< 1%）
 - 🔒 **隐私保护**: 仅记录使用时长，不记录输入内容，数据仅本地存储
 - 📊 **数据导出**: 支持CSV和JSON格式导出
+- 📈 **数据可视化**: 支持生成HTML可视化报告，包含5种图表类型
 - 🔄 **后台运行**: 支持作为系统服务运行，支持自启动
 - 💻 **跨平台**: 支持Linux（X11）和Windows 7+
 
@@ -105,7 +106,29 @@ logging:
 
 export:
   output_dir: ~/.actime/exports
+  default_format: csv
+
+app_mapping:
+  process_names:
+    chrome: "Google Chrome"
+    firefox: "Mozilla Firefox"
+    code: "VS Code"
+  browsers:
+    - chrome
+    - firefox
 ```
+
+**配置说明**:
+- `database.path`: 数据库文件路径（支持 `~` 符号自动展开）
+- `monitor.check_interval`: 检测间隔（默认1秒）
+- `monitor.activity_window`: 活跃时间窗口（默认5分钟）
+- `monitor.idle_timeout`: 空闲超时（默认10分钟）
+- `logging.level`: 日志级别（debug/info/warn/error）
+- `logging.file`: 日志文件路径（支持 `~` 符号自动展开）
+- `export.output_dir`: 导出目录（支持 `~` 符号自动展开）
+- `export.default_format`: 默认导出格式（csv/json）
+- `app_mapping.process_names`: 进程名称映射（不区分大小写）
+- `app_mapping.browsers`: 浏览器进程名称列表
 
 ### 使用
 
@@ -159,6 +182,31 @@ actime export --format json --output report.json
 actime export --format csv --start 2026-01-01 --end 2026-01-31
 ```
 
+#### 数据可视化
+
+```bash
+# 生成可视化报告（默认最近7天）
+actime visualize
+
+# 指定日期范围
+actime visualize --start 2026-01-01 --end 2026-01-31
+
+# 自定义输出文件
+actime visualize --output my-report.html
+
+# 生成后自动在浏览器中打开
+actime visualize --open
+
+# 查看最近30天的数据
+actime visualize --days 30
+```
+
+**可视化报告包含**:
+- 📊 总览：应用使用排行（柱状图 + 饼图）
+- 📈 趋势：每日使用变化（折线图）
+- ⏰ 节律：时间段分布（热力图）
+- 🧩 构成：应用时间结构（树状图）
+
 ## 工作原理
 
 Actime 通过以下方式统计应用使用时长：
@@ -168,6 +216,7 @@ Actime 通过以下方式统计应用使用时长：
 3. **活跃判断**: 如果空闲时间 < 5分钟，则认为用户活跃
 4. **时间记录**: 记录每个应用的累计活跃时长
 5. **数据持久化**: 每分钟批量写入数据库
+6. **数据可视化**: 使用 ECharts 生成交互式 HTML 报告，支持多种图表类型
 
 ### 平台实现
 
@@ -268,5 +317,20 @@ A: 使用 `actimed status` 命令，会显示服务状态和进程ID。
 
 ### Q: 可以启动多个服务实例吗？
 A: 不可以。服务使用PID文件管理，会自动检测并防止重复启动。
+
+### Q: 可视化报告支持哪些图表类型？
+A: 支持柱状图、饼图、折线图、热力图和树状图，共5种图表类型。
+
+### Q: 如何自定义应用名称的显示？
+A: 在配置文件的 `app_mapping.process_names` 中添加进程名称映射，例如：
+```yaml
+app_mapping:
+  process_names:
+    chrome.exe: "Google Chrome"
+    code.exe: "VS Code"
+```
+
+### Q: 可视化报告需要联网吗？
+A: 报告使用 CDN 加载 ECharts 库，需要联网才能正常显示图表。如需离线使用，可下载 ECharts 库到本地并修改 HTML 文件。
 
 更多问题请查看 [Issues](https://github.com/weii/actime/issues)。
